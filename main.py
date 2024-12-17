@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import cv2
 from ultralytics import YOLO
 import numpy as np
@@ -125,3 +126,140 @@ def main():
 
 if __name__ == "__main__":
     main()
+=======
+import time
+import cv2 
+from flask import Flask, render_template, Response, request
+import numpy as np
+import imutils
+import os
+
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    """Video streaming home page."""
+    return render_template('index.html')
+
+def find_max(k):
+    d = {}
+    maximum = ( '', 0 ) # (occurring element, occurrences)
+    for n in k:
+        if n in d: 
+            d[n] += 1
+        else: 
+            d[n] = 1
+
+        # Keep track of maximum on the go
+        if d[n] > maximum[1]: 
+            maximum = (n,d[n])
+
+    return maximum
+
+
+
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/upload_video', methods=['POST'])
+def upload_video():
+    """Handle video file upload."""
+    if 'videoFile' not in request.files:
+        return "No video file provided!", 400
+
+    file = request.files['videoFile']
+    if file.filename == '':
+        return "No selected file!", 400
+
+    # Save the uploaded file
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
+    
+    # Update video file in gen function
+    global video_file_path
+    video_file_path = file_path
+    
+    return "OK", 200
+
+
+# video_file_path = 'bus_video.mp4'  # Default video path
+
+def gen():
+    """Video streaming generator function."""
+    cap = cv2.VideoCapture(video_file_path)  # Use the updated video path
+    avg = None
+    xvalues = list()
+    motion = list()
+    count1 = 0
+    count2 = 0
+
+
+
+    
+    # Read until video is completed
+    while cap.isOpened():
+        ret, frame = cap.read()
+        flag = True
+        frame = imutils.resize(frame, width=500)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    
+        if avg is None:
+            avg = gray.copy().astype("float")
+            continue
+    
+        cv2.accumulateWeighted(gray, avg, 0.5)
+        frameDelta = cv2.absdiff(gray, cv2.convertScaleAbs(avg))
+        thresh = cv2.threshold(frameDelta, 2, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.dilate(thresh, None, iterations=2)
+        (cnts,_) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for c in cnts:
+            if cv2.contourArea(c) < 5000:
+                continue
+            (x, y, w, h) = cv2.boundingRect(c)
+            xvalues.append(x)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            flag = False
+    	
+        no_x = len(xvalues)
+        
+        if (no_x > 2):
+            difference = xvalues[no_x - 1] - xvalues[no_x - 2]
+            if(difference > 0):
+                motion.append(1)
+            else:
+                motion.append(0)
+    
+        if flag is True:
+            if no_x > 5:
+                val, times = find_max(motion)
+                if val == 1 and times >= 15:
+                    count1 += 1
+                else:
+                    count2 += 1
+                    
+            xvalues = list()
+            motion = list()
+        
+        cv2.line(frame, (260, 0), (260,480), (0,255,0), 2)
+        cv2.line(frame, (420, 0), (420,480), (0,255,0), 2)	
+        cv2.putText(frame, "In: {}".format(count1), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(frame, "Out: {}".format(count2), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.imshow("Frame",frame)
+        
+        frame = cv2.imencode('.jpg', frame)[1].tobytes()
+        yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    #time.sleep(0.1)
+    
+
+
+@app.route('/video_feed')
+def video_feed():
+    """Video streaming route. Put this in the src attribute of an img tag."""
+    return Response(gen(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+>>>>>>> master
