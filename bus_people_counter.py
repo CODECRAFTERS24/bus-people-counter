@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-
 class BusPeopleCounter:
     def __init__(self, model_version='yolov8n'):
         """
