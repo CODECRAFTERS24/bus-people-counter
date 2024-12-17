@@ -1,26 +1,23 @@
-# PeopleCounter
-Using OpenCV to count the number of people entering or exiting a particular ROI
-
-Check out the video demonstrating project working [here](https://drive.google.com/file/d/1jBfTiH7UXfdpJ_q8aXcNkohM3HRZ_iDM/view?usp=sharing)
+# BUS PEOPLE COUNTER
+Using OpenCV to count the number of people entering or exiting
 
 ## How to Use
 
 1. Clone this repository to your local system by typing the following command on the Command Prompt:
 ```
-git clone https://github.com/Karan-Malik/PeopleCounter.git
+git clone https://github.com/CODECRAFTERS24/bus-people-counter.git
 ```
 
 2. Change your directory to PeopleCounter:
 ```
-cd PeopleCounter
+cd bus-people-counter
 ```
 
 3. Then run the follwing commands to run the application:
 ```
-set FLASK_APP=counter_stream.py
+set FLASK_APP=main.py
 flask run
 ```
 
 4. Enter the url provided after running the previous commands into your web browser
 
-To change the video played, add the video address to counter_stream.py in line 41.
